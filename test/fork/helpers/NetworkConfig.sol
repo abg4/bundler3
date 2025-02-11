@@ -73,7 +73,6 @@ abstract contract NetworkConfig is CommonBase {
             setAddress("AUGUSTUS_V6_2", 0x6A000F20005980200259B80c5102003040001068);
             setAddress("AUGUSTUS_REGISTRY", 0x7E31B336F9E8bA52ba3c4ac861b033Ba90900bb3);
             setAddress("VER_USDC", 0x59aaF835D34b1E3dF2170e4872B785f11E2a964b);
-            setAddress("SPOKE_POOL", 0x09aea4b2242abC8bb4BB78D537A67a245A7bEC64);
         }
     }
 

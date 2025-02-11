@@ -93,10 +93,13 @@ contract AcrossAdapter is CoreAdapter, IAcrossAdapter {
         callData.set(offsets.outputAmount, amountAfterFees);
     }
 
+    /// @notice Computes the output amount based on input amount and relay fee percentage.
+    /// @param amount The input amount.
+    /// @param relayFeePercentage The Across relay fee percentage (included in Across API response).
     function _computeAmountPostFees(
         uint256 amount,
-        int256 feesPct
+        int256 relayFeePercentage
     ) private pure returns (uint256) {
-        return (amount * uint256(int256(1e18) - feesPct)) / 1e18;
+        return (amount * uint256(int256(1e18) - relayFeePercentage)) / 1e18;
     }
 }

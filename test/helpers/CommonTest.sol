@@ -38,7 +38,6 @@ import {Bundler3, Call} from "../../src/Bundler3.sol";
 
 import {AugustusRegistryMock} from "../../src/mocks/AugustusRegistryMock.sol";
 import {AugustusMock} from "../../src/mocks/AugustusMock.sol";
-import {SpokePoolMock} from "../../src/mocks/SpokePoolMock.sol";
 
 import "../../lib/forge-std/src/Test.sol";
 import "../../lib/forge-std/src/console.sol";
@@ -73,7 +72,6 @@ abstract contract CommonTest is Test {
     AugustusMock augustus;
 
     AcrossAdapter acrossAdapter;
-    SpokePoolMock spokePool;
 
     Call[] internal bundle;
     Call[] internal callbackBundle;
@@ -91,9 +89,6 @@ abstract contract CommonTest is Test {
         generalAdapter1 = new GeneralAdapter1(address(bundler3), address(morpho), address(1));
         erc20WrapperAdapter = new ERC20WrapperAdapter(address(bundler3));
         paraswapAdapter = new ParaswapAdapter(address(bundler3), address(morpho), address(augustusRegistryMock));
-
-        spokePool = new SpokePoolMock();
-        acrossAdapter = new AcrossAdapter(address(bundler3), address(spokePool));
 
         irm = new IrmMock();
 

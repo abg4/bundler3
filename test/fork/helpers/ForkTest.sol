@@ -43,6 +43,8 @@ abstract contract ForkTest is CommonTest, NetworkConfig {
         }
         paraswapAdapter = new ParaswapAdapter(address(bundler3), address(morpho), getAddress("AUGUSTUS_REGISTRY"));
 
+        acrossAdapter = new AcrossAdapter(address(bundler3), getAddress("SPOKE_POOL"));
+
         for (uint256 i; i < config.markets.length; ++i) {
             ConfigMarket memory configMarket = config.markets[i];
 

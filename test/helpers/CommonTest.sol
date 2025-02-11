@@ -28,6 +28,7 @@ import {IParaswapAdapter, Offsets} from "../../src/interfaces/IParaswapAdapter.s
 import {ParaswapAdapter} from "../../src/adapters/ParaswapAdapter.sol";
 import {IERC20Permit} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Permit} from "../helpers/SigUtils.sol";
+import {IAcrossAdapter, AcrossAdapter, Offsets as AcrossOffsets} from "../../src/adapters/AcrossAdapter.sol";
 
 import {CoreAdapter, IERC20, SafeERC20, UtilsLib} from "../../src/adapters/CoreAdapter.sol";
 import {FunctionMocker} from "./FunctionMocker.sol";
@@ -37,6 +38,7 @@ import {Bundler3, Call} from "../../src/Bundler3.sol";
 
 import {AugustusRegistryMock} from "../../src/mocks/AugustusRegistryMock.sol";
 import {AugustusMock} from "../../src/mocks/AugustusMock.sol";
+import {SpokePoolMock} from "../../src/mocks/SpokePoolMock.sol";
 
 import "../../lib/forge-std/src/Test.sol";
 import "../../lib/forge-std/src/console.sol";
@@ -70,6 +72,9 @@ abstract contract CommonTest is Test {
     AugustusRegistryMock augustusRegistryMock;
     AugustusMock augustus;
 
+    AcrossAdapter acrossAdapter;
+    SpokePoolMock spokePool;
+
     Call[] internal bundle;
     Call[] internal callbackBundle;
 
@@ -86,6 +91,9 @@ abstract contract CommonTest is Test {
         generalAdapter1 = new GeneralAdapter1(address(bundler3), address(morpho), address(1));
         erc20WrapperAdapter = new ERC20WrapperAdapter(address(bundler3));
         paraswapAdapter = new ParaswapAdapter(address(bundler3), address(morpho), address(augustusRegistryMock));
+
+        spokePool = new SpokePoolMock();
+        acrossAdapter = new AcrossAdapter(address(bundler3), address(spokePool));
 
         irm = new IrmMock();
 
@@ -507,6 +515,55 @@ abstract contract CommonTest is Test {
                 destToken,
                 newDestAmount,
                 Offsets({exactAmount: toAmountOffset, limitAmount: fromAmountOffset, quotedAmount: 0}),
+                receiver
+            )
+        );
+    }
+
+        /* ACROSS ADAPTER ACTIONS */
+
+    function _acrossBridge(
+        address _spokePool,
+        bytes memory callData,
+        address inputToken,
+        bool bridgeEntireBalance,
+        int256 relayFeePercentage,
+        AcrossOffsets memory offsets,
+        address receiver
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodeCall(
+                IAcrossAdapter.bridge,
+                (
+                    _spokePool,
+                    callData,
+                    inputToken,
+                    bridgeEntireBalance,
+                    relayFeePercentage,
+                    offsets,
+                    receiver
+                )
+            );
+    }
+
+    function _bridge(
+        address _spokePool,
+        bytes memory callData,
+        address inputToken,
+        bool bridgeEntireBalance,
+        int256 relayFeePercentage,
+        AcrossOffsets memory offsets,
+        address receiver
+    ) internal view returns (Call memory) {
+        return _call(
+            address(acrossAdapter),
+            _acrossBridge(
+                _spokePool,
+                callData,
+                inputToken,
+                bridgeEntireBalance,
+                relayFeePercentage,
+                offsets,
                 receiver
             )
         );

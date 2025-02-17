@@ -12,20 +12,43 @@ contract AcrossAdapterForkTest is ForkTest {
     address internal SPOKE_POOL = getAddress("SPOKE_POOL");
     address internal USDC = getAddress("USDC");
 
+    int256 relayFeePercentage = 99878000000000;
+    uint32 quoteTimestamp;
+    uint32 fillDeadline;
+
     function setUp() public override {
         // block.chainid is only available after super.setUp
         if (config.chainid != 1) return;
 
-        config.blockNumber = 21811519;
+        config.blockNumber = 21867612;
         super.setUp();
+
+        // Initialize quoteTimestamp and fillDeadline
+        quoteTimestamp = uint32(block.timestamp);
+        fillDeadline = uint32(quoteTimestamp + 2 hours);
     }
 
-    // depositV3 - 50 USDC bridge deposit
-    bytes _bridgeCalldata =
-        hex"7b939232000000000000000000000000b8034521bb1a343d556e5005680b3f17ffc74bed000000000000000000000000b8034521bb1a343d556e5005680b3f17ffc74bed000000000000000000000000a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48000000000000000000000000833589fcd6edb6e08f4c7c32d4f71b54bda029130000000000000000000000000000000000000000000000000000000002faf0800000000000000000000000000000000000000000000000000000000002fad7d20000000000000000000000000000000000000000000000000000000000002105000000000000000000000000b96b74874126a787720a464eab3fbd2f35a5d14e0000000000000000000000000000000000000000000000000000000067a916530000000000000000000000000000000000000000000000000000000067a945190000000000000000000000000000000000000000000000000000000067a9176d000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000000001dc0de0000";
-    uint256 inputAmountOffset = 132;
-    uint256 outputAmountOffset = 164;
-    int256 relayFeePercentage = 99878000000000;
+    function createDepositData(
+        address user,
+        uint256 inputAmount,
+        uint256 outputAmount
+    ) internal view returns (DepositData memory) {
+        return
+            DepositData({
+                depositor: user,
+                recipient: user,
+                inputToken: USDC,
+                outputToken: USDC,
+                inputAmount: inputAmount,
+                outputAmount: outputAmount,
+                destinationChainid: 8453,
+                exclusiveRelayer: address(0),
+                quoteTimestamp: quoteTimestamp,
+                fillDeadline: fillDeadline,
+                exclusivityDeadline: 0,
+                message: hex""
+            });
+    }
 
     function testBridgeDepositWithExactAmount() public onlyEthereum {
         address user = makeAddr("Test User");
@@ -33,6 +56,13 @@ contract AcrossAdapterForkTest is ForkTest {
 
         uint256 initialBalance = 100e6;
         uint256 bridgeAmount = 50e6;
+        uint256 expectedOutputAmount = 49e6;
+
+        DepositData memory depositData = createDepositData(
+            user,
+            bridgeAmount,
+            expectedOutputAmount
+        );
 
         deal(USDC, user, initialBalance);
 
@@ -41,18 +71,7 @@ contract AcrossAdapterForkTest is ForkTest {
         );
 
         bundle.push(
-            _call(
-                acrossAdapter,
-                _acrossBridge(
-                    SPOKE_POOL,
-                    _bridgeCalldata,
-                    USDC,
-                    false,
-                    0,
-                    AcrossOffsets(inputAmountOffset, outputAmountOffset),
-                    receiver
-                )
-            )
+            _call(acrossAdapter, _acrossBridge(depositData, false, 0, receiver))
         );
 
         uint256 initialSpokePoolBalance = IERC20(USDC).balanceOf(
@@ -67,7 +86,11 @@ contract AcrossAdapterForkTest is ForkTest {
         uint256 bridged = IERC20(USDC).balanceOf(address(SPOKE_POOL)) -
             initialSpokePoolBalance;
         assertEq(bridged, bridgeAmount, "bridged");
-        assertEq(IERC20(USDC).balanceOf(receiver), initialBalance - bridgeAmount, "receiver balance");
+        assertEq(
+            IERC20(USDC).balanceOf(receiver),
+            initialBalance - bridgeAmount,
+            "receiver balance"
+        );
     }
 
     function testBridgeDepositWithFullAmount() public onlyEthereum {
@@ -75,6 +98,14 @@ contract AcrossAdapterForkTest is ForkTest {
         address receiver = makeAddr("Test Receiver");
 
         uint256 initialBalance = 150e6;
+        uint256 bridgeAmount = 100e6; // intentionally different from initialBalance to test full amount
+        uint256 expectedOutputAmount = 99e6;
+
+        DepositData memory depositData = createDepositData(
+            user,
+            bridgeAmount,
+            expectedOutputAmount
+        );
 
         deal(USDC, user, initialBalance);
 
@@ -85,15 +116,7 @@ contract AcrossAdapterForkTest is ForkTest {
         bundle.push(
             _call(
                 acrossAdapter,
-                _acrossBridge(
-                    SPOKE_POOL,
-                    _bridgeCalldata,
-                    USDC,
-                    true,
-                    relayFeePercentage,
-                    AcrossOffsets(inputAmountOffset, outputAmountOffset),
-                    user
-                )
+                _acrossBridge(depositData, true, relayFeePercentage, user)
             )
         );
 
@@ -116,7 +139,15 @@ contract AcrossAdapterForkTest is ForkTest {
     function testWithdrawAndBridge() public onlyEthereum {
         address user = makeAddr("Test User");
         uint256 initialBalance = 100e6;
+        uint256 bridgeAmount = 50e6;
+        uint256 expectedOutputAmount = 49e6;
         uint256 withdrawAmount = 60e6;
+
+        DepositData memory depositData = createDepositData(
+            user,
+            bridgeAmount, // intentionally different from initialBalance to test full amount
+            expectedOutputAmount
+        );
 
         MarketParams memory usdcMarketParams = MarketParams({
             collateralToken: USDC,
@@ -151,15 +182,7 @@ contract AcrossAdapterForkTest is ForkTest {
         bundle.push(
             _call(
                 acrossAdapter,
-                _acrossBridge(
-                    SPOKE_POOL,
-                    _bridgeCalldata,
-                    USDC,
-                    true,
-                    relayFeePercentage,
-                    AcrossOffsets(inputAmountOffset, outputAmountOffset),
-                    user
-                )
+                _acrossBridge(depositData, true, relayFeePercentage, user)
             )
         );
 

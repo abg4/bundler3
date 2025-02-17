@@ -28,7 +28,7 @@ import {IParaswapAdapter, Offsets} from "../../src/interfaces/IParaswapAdapter.s
 import {ParaswapAdapter} from "../../src/adapters/ParaswapAdapter.sol";
 import {IERC20Permit} from "../../lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {Permit} from "../helpers/SigUtils.sol";
-import {IAcrossAdapter, AcrossAdapter, Offsets as AcrossOffsets} from "../../src/adapters/AcrossAdapter.sol";
+import {IAcrossAdapter, AcrossAdapter, DepositData} from "../../src/adapters/AcrossAdapter.sol";
 
 import {CoreAdapter, IERC20, SafeERC20, UtilsLib} from "../../src/adapters/CoreAdapter.sol";
 import {FunctionMocker} from "./FunctionMocker.sol";
@@ -518,50 +518,21 @@ abstract contract CommonTest is Test {
         /* ACROSS ADAPTER ACTIONS */
 
     function _acrossBridge(
-        address _spokePool,
-        bytes memory callData,
-        address inputToken,
+        DepositData memory depositData,
         bool bridgeEntireBalance,
         int256 relayFeePercentage,
-        AcrossOffsets memory offsets,
         address receiver
     ) internal pure returns (bytes memory) {
         return
             abi.encodeCall(
                 IAcrossAdapter.bridge,
                 (
-                    _spokePool,
-                    callData,
-                    inputToken,
+                    depositData,
                     bridgeEntireBalance,
                     relayFeePercentage,
-                    offsets,
                     receiver
                 )
             );
-    }
-
-    function _bridge(
-        address _spokePool,
-        bytes memory callData,
-        address inputToken,
-        bool bridgeEntireBalance,
-        int256 relayFeePercentage,
-        AcrossOffsets memory offsets,
-        address receiver
-    ) internal view returns (Call memory) {
-        return _call(
-            address(acrossAdapter),
-            _acrossBridge(
-                _spokePool,
-                callData,
-                inputToken,
-                bridgeEntireBalance,
-                relayFeePercentage,
-                offsets,
-                receiver
-            )
-        );
     }
 
     /* PERMIT ACTIONS */

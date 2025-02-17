@@ -3,24 +3,29 @@ pragma solidity >=0.5.0;
 
 import {MarketParams} from "../../lib/morpho-blue/src/interfaces/IMorpho.sol";
 
-/// @notice The offsets are:
-///  - inputAmount, the offset in spokePool calldata of the input amount to bridge.
-///  - outputAmount, the offset in spokePool calldata of the ouput amount to receive.
-struct Offsets {
+/// @notice The depositData is the data structure used to specify an Across Deposit.
+struct DepositData {
+    address depositor;
+    address recipient;
+    address inputToken;
+    address outputToken;
     uint256 inputAmount;
     uint256 outputAmount;
+    uint256 destinationChainid;
+    address exclusiveRelayer;
+    uint32 quoteTimestamp;
+    uint32 fillDeadline;
+    uint32 exclusivityDeadline;
+    bytes message;
 }
 
 /// @custom:security-contact bugs@across.to
 /// @notice Interface of Across Adapter.
 interface IAcrossAdapter {
     function bridge(
-        address spokePool,
-        bytes memory callData,
-        address inputToken,
+        DepositData memory depositData,
         bool bridgeEntireBalance,
         int256 relayFeePercentage,
-        Offsets calldata offsets,
         address receiver
     ) external;
 }
